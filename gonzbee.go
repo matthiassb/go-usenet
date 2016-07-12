@@ -1,7 +1,7 @@
 //Copyright 2012, Daniel Morsing
 //For licensing information, See the LICENSE file
 
-package go-usenet
+package usenet
 
 import (
 	"bytes"

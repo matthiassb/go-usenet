@@ -4,10 +4,10 @@
 // code for figuring out which par files to select to get the proper
 // number of blocks.
 
-package main
+package usenet
 
 import (
-	"github.com/DanielMorsing/gonzbee/nzb"
+	"github.com/matthiassb/go-usenet/nzb"
 	"regexp"
 	"strconv"
 )
