@@ -1,7 +1,7 @@
 //Copyright 2012, Daniel Morsing
 //For licensing information, See the LICENSE file
 
-package main
+package go-usenet
 
 import (
 	"bytes"
@@ -19,10 +19,10 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/DanielMorsing/gonzbee/nntp"
-	"github.com/DanielMorsing/gonzbee/nzb"
-	"github.com/DanielMorsing/gonzbee/par2"
-	"github.com/DanielMorsing/gonzbee/yenc"
+	"github.com/matthiassb/go-usenet/nntp"
+	"github.com/matthiassb/go-usenet/nzb"
+	"github.com/matthiassb/go-usenet/par2"
+	"github.com/matthiassb/go-usenet/yenc"
 )
 
 var (
@@ -36,7 +36,7 @@ var extStrip = regexp.MustCompile(`\.nzb$`)
 
 var existErr = errors.New("file exists")
 
-func main() {
+/*func main() {
 	flag.Parse()
 	if flag.NArg() == 0 {
 		fmt.Fprintln(os.Stderr, "No NZB files given")
@@ -81,7 +81,7 @@ func main() {
 		}
 	}
 	filewg.Wait()
-}
+}*/
 
 // download all the files contained in an nzb,
 func downloadNzb(nzbFile *nzb.Nzb, dir string) error {

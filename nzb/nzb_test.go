@@ -4,7 +4,7 @@
 package nzb_test
 
 import (
-	. "github.com/DanielMorsing/gonzbee/nzb"
+	. "github.com/matthiassb/go-usenet/nzb"
 	"reflect"
 	"strings"
 	"testing"

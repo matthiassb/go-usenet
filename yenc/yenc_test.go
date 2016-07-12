@@ -4,7 +4,7 @@
 package yenc_test
 
 import (
-	. "github.com/DanielMorsing/gonzbee/yenc"
+	. "github.com/matthiassb/go-usenet/yenc"
 	"io/ioutil"
 	"os"
 	"reflect"

@@ -4,13 +4,13 @@
 // This file contains a muxer that will limit the amount of connections
 // that are concurrently running.
 
-package main
+package /go-usenet
 
 import (
 	"net"
 	"sync"
 
-	"github.com/DanielMorsing/gonzbee/nntp"
+	"github.com/matthiassb/go-usenet/nntp"
 )
 
 var (
