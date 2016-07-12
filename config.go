@@ -15,7 +15,7 @@ import (
 //
 //You get the various settings from this variable which is populated
 //at init time.
-var config = newConfig()
+var Config = newConfig()
 
 //ServerConfig holds the settings that describe connecting to a server.
 type ServerConfig struct {
