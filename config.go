@@ -1,125 +1,106 @@
 //Copyright 2012, Daniel Morsing
 //For licensing information, See the LICENSE file
 
-//Package nntp provides some common operations on nntp server,
-//mostly for binary downloading
-package nntp
+package usenet
 
 import (
-	"crypto/tls"
-	"net/textproto"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path"
 )
 
-//Conn represents a NNTP connection
-type Conn struct {
-	*textproto.Conn
-	group string
+//The config variable is the general interface to the config package.
+//
+//You get the various settings from this variable which is populated
+//at init time.
+var Config ServerConfig
+
+//ServerConfig holds the settings that describe connecting to a server.
+type ServerConfig struct {
+	Address  string
+	Port     int
+	Username string
+	Password string
+	TLS      bool
 }
 
-//Dial will establish a connection to a NNTP server.
-//It returns the connection and an error, if any
-func Dial(address, user, pass string) (*Conn, error) {
-	n := new(Conn)
-	var err error
-	n.Conn, err = textproto.Dial("tcp", address)
-	if err != nil {
-		return nil, err
+//GetAddressStr returns the colon separated string of a serverconfigs
+//address and port.
+func (s *ServerConfig) GetAddressStr() string {
+	if s.Address == "" {
+		return ""
 	}
-	_, _, err = n.ReadCodeLine(20)
-	if err != nil {
-		n.Close()
-		return nil, err
+	port := s.Port
+	if port == 0 {
+		port = 119
 	}
-	err = n.authenticate(user, pass)
-	if err != nil {
-		return nil, err
-	}
-	return n, nil
+	return fmt.Sprintf("%v:%d", s.Address, port)
 }
 
-func DialTLS(address, user, pass string) (*Conn, error) {
-	n := new(Conn)
-	tlsConn, err := tls.Dial("tcp", address, nil)
-	if err != nil {
-		return nil, err
+// newConfig initialized config from a dotfile at $HOME/.gonzbee/config
+func newConfig() *ServerConfig {
+	//this is very unix specific, beware eventual porters
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		panic(errors.New("Cannot Get Config: No home Directory"))
 	}
-	n.Conn = textproto.NewConn(tlsConn)
-	_, _, err = n.ReadCodeLine(20)
-	if err != nil {
-		n.Close()
-		return nil, err
+	configDir := path.Join(homeDir, ".gonzbee")
+	err := os.Mkdir(configDir, 0777)
+	if err != nil && !os.IsExist(err) {
+		panic(fmt.Errorf("Cannot Get Config: %s", err.Error()))
 	}
-	err = n.authenticate(user, pass)
+	//check if a config file exists
+	configPath := path.Join(configDir, "config")
+	c, err := readConfigFile(configPath)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("Cannot Get Config: %s", err.Error()))
 	}
-	return n, nil
+	return c
 }
 
-//Authenticate will authenticate with the NNTP server, using the supplied
-//username and password. It returns an error, if any
-func (n *Conn) authenticate(user, pass string) error {
-	id, err := n.Cmd("AUTHINFO USER %s", user)
-	if err != nil {
-		return err
-	}
-	n.StartResponse(id)
-	code, _, err := n.ReadCodeLine(381)
-	n.EndResponse(id)
-	switch code {
-	case 481, 482, 502:
-		//failed, out of sequence or command not available
-		return err
-	case 281:
-		//accepted without password
-		return nil
-	case 381:
-		//need password
-		break
-	default:
-		return err
-	}
-	id, err = n.Cmd("AUTHINFO PASS %s", pass)
-	if err != nil {
-		return err
-	}
-	n.StartResponse(id)
-	code, _, err = n.ReadCodeLine(281)
-	n.EndResponse(id)
-	return err
-}
-
-//SwitchGroup will change the current group, using the supplied
-//group name. It returns an error, if any
-func (n *Conn) SwitchGroup(group string) error {
-	if group == n.group {
-		return nil
-	}
-	id, err := n.Cmd("GROUP %s", group)
-	if err != nil {
-		return err
-	}
-	n.StartResponse(id)
-	_, _, err = n.ReadCodeLine(211)
-	n.EndResponse(id)
-	if err == nil {
-		n.group = group
-	}
-	return err
-}
-
-//GetMessage will retrieve a message from the server, using the supplied
-//msgId. It returns the contents of the message and an error, if any
-func (n *Conn) GetMessage(msgId string) ([]byte, error) {
-	id, err := n.Cmd("BODY <%s>", msgId)
+func readConfigFile(path string) (*ServerConfig, error) {
+	file, created, err := openOrCreate(path)
 	if err != nil {
 		return nil, err
 	}
-	n.StartResponse(id)
-	defer n.EndResponse(id)
-	_, _, err = n.ReadCodeLine(222)
+	defer file.Close()
+
+	if created {
+		return firstConfig(file)
+	}
+	return existingConfig(file)
+}
+
+func firstConfig(file *os.File) (*ServerConfig, error) {
+	s := ServerConfig{}
+	config, err := json.MarshalIndent(s, "", "\t")
 	if err != nil {
 		return nil, err
 	}
-	return n.ReadDotBytes()
+	_, err = file.Write(config)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func existingConfig(file *os.File) (*ServerConfig, error) {
+	c := new(ServerConfig)
+	enc := json.NewDecoder(file)
+	err := enc.Decode(c)
+	if err != nil {
+		return nil, err
+	}
+	return c, err
+}
+
+func openOrCreate(path string) (*os.File, bool, error) {
+	file, err := os.OpenFile(path, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil && os.IsExist(err) {
+		file, err = os.Open(path)
+		return file, false, err
+	}
+	return file, true, err
 }
