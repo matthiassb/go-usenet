@@ -86,15 +86,15 @@ func putBroken(c *nntp.Conn) {
 }
 
 func dialNNTP() (*nntp.Conn, error) {
-	dialstr := config.GetAddressStr()
+	dialstr := Config.GetAddressStr()
 	var err error
 	var c *nntp.Conn
 
 	for {
-		if config.TLS {
-			c, err = nntp.DialTLS(dialstr, config.Username, config.Password)
+		if Config.TLS {
+			c, err = nntp.DialTLS(dialstr, Config.Username, Config.Password)
 		} else {
-			c, err = nntp.Dial(dialstr, config.Username, config.Password)
+			c, err = nntp.Dial(dialstr, Config.Username, Config.Password)
 		}
 		if err != nil {
 			// if it's a timeout, ignore and try again
