@@ -15,12 +15,16 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
-
+	"io/ioutil"
+	"strings"
 	"github.com/matthiassb/go-usenet/nntp"
 	"github.com/matthiassb/go-usenet/nzb"
 	"github.com/matthiassb/go-usenet/par2"
 	"github.com/matthiassb/go-usenet/yenc"
+	"github.com/matthiassb/go-unarr"
 )
+
+
 
 var (
 	rm       = flag.Bool("rm", false, "Remove the nzb file after downloading")
@@ -33,55 +37,8 @@ var extStrip = regexp.MustCompile(`\.nzb$`)
 
 var existErr = errors.New("file exists")
 
-/*func main() {
-	flag.Parse()
-	if flag.NArg() == 0 {
-		fmt.Fprintln(os.Stderr, "No NZB files given")
-		os.Exit(1)
-	}
-
-	if *profAddr != "" {
-		laddr, err := net.Listen("tcp", *profAddr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		go func() {
-			log.Fatalln(http.Serve(laddr, nil))
-		}()
-	}
-
-	for _, path := range flag.Args() {
-		file, err := os.Open(path)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
-		}
-
-		nzb, err := nzb.Parse(file)
-		file.Close()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
-		}
-
-		err = downloadNzb(nzb, extStrip.ReplaceAllString(path, ""))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
-		}
-
-		if *rm {
-			err = os.Remove(path)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
-		}
-	}
-	filewg.Wait()
-}*/
-
 // download all the files contained in an nzb,
-func downloadNzb(nzbFile *nzb.Nzb, dir string) error {
+func DownloadNzb(nzbFile *nzb.Nzb, dir string) (error, string) {
 	if *saveDir != "" {
 		dir = *saveDir
 	}
@@ -89,7 +46,7 @@ func downloadNzb(nzbFile *nzb.Nzb, dir string) error {
 	// if the directory already exist, assume that it's an old download that was canceled
 	// and restarted.
 	if err != nil && !os.IsExist(err) {
-		return err
+		return err, ""
 	}
 	var parfiles map[*nzb.File][]*parfile
 	if !*par {
@@ -115,7 +72,7 @@ func downloadNzb(nzbFile *nzb.Nzb, dir string) error {
 		}
 	}
 	if *par {
-		return nil
+		return nil, ""
 	}
 
 	// create a list of files downloaded
@@ -144,7 +101,23 @@ func downloadNzb(nzbFile *nzb.Nzb, dir string) error {
 			}
 		}
 	}
-	return nil
+	files, _ := ioutil.ReadDir(dir)
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".rar") {
+			unarr.ExtractArchive(dir + "/" + file.Name(), dir)
+			break
+		}
+	}
+	var path string
+	files, _ = ioutil.ReadDir(dir)
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".mp4") {
+			path = dir + "/" + file.Name()
+			break
+		}
+	}
+
+	return nil, path
 }
 
 func verifyPar(fp *nzb.File, dir string, paths []string) ([]string, int, error) {
