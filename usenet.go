@@ -21,7 +21,7 @@ import (
 	"github.com/matthiassb/go-usenet/nzb"
 	"github.com/matthiassb/go-usenet/par2"
 	"github.com/matthiassb/go-usenet/yenc"
-	"github.com/matthiassb/go-unarr"
+	"github.com/mholt/archiver"
 )
 
 
