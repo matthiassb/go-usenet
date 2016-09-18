@@ -104,7 +104,7 @@ func DownloadNzb(nzbFile *nzb.Nzb, dir string) (error, string) {
 	files, _ := ioutil.ReadDir(dir)
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".rar") {
-			unarr.ExtractArchive(dir + "/" + file.Name(), dir)
+			archiver.Unrar(dir + "/" + file.Name(), dir)
 			break
 		}
 	}
